@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>View</title>
+  <link rel="icon" type="image/png" href="icon.png" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.2/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: url('1234.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    /* Responsive sidebar overlay for mobile */
+    @media (max-width: 768px) {
+      .sidebar-mobile {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        right: auto;
+        transform: translate(-50%, -50%) scale(0.95);
+        width: 92vw;
+        max-width: 400px;
+        min-width: 260px;
+        height: auto;
+        max-height: 92vh;
+        z-index: 50;
+        background: rgba(255,255,255,0.95);
+        box-shadow: 0 12px 40px 0 rgba(236,72,153,0.18), 0 2px 8px 0 rgba(0,0,0,0.10);
+        border-radius: 2.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        padding: 2.2rem 1.5rem 1.5rem 1.5rem;
+        opacity: 0;
+        pointer-events: none;
+        transition: transform 0.35s cubic-bezier(.4,0,.2,1), opacity 0.3s cubic-bezier(.4,0,.2,1), box-shadow 0.3s;
+        backdrop-filter: blur(8px) saturate(1.2);
+        border: 1.5px solid #f3e8ff;
+      }
+      .sidebar-mobile.open {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .sidebar-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.25);
+        z-index: 40;
+      }
+      .ml-64 {
+        margin-left: 0 !important;
+      }
+      .masonry-grid {
+        column-count: 1 !important;
+        padding: 0.5rem;
+      }
+    }
+    .masonry-grid {
+      column-count: 2;
+      column-gap: 1rem;
+      padding: 1rem;
+    }
+    @media (min-width: 640px) { .masonry-grid { column-count: 3; } }
+    @media (min-width: 768px) { .masonry-grid { column-count: 4; } }
+    @media (min-width: 1024px) { .masonry-grid { column-count: 5; } }
+    .masonry-item {
+      break-inside: avoid;
+      margin-bottom: 1rem;
+      transition: transform 0.3s ease;
+    }
+    .masonry-item:hover {
+      transform: translateY(-4px);
+    }
+    .card {
+      background-color: white;
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: box-shadow 0.3s ease;
+    }
+    .card:hover {
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    /* Fade in/out effect for pill and content */
+    .fade-in-out {
+      animation: fadeInOut 0.6s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; filter: blur(8px); }
+      100% { opacity: 1; filter: blur(0); }
+    }
+    @media (max-width: 768px) {
+      .fade-in-out {
+        border-top-left-radius: 2rem;
+        border-top-right-radius: 2rem;
+        border-bottom-left-radius: 2rem;
+        border-bottom-right-radius: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Remove direct Unsplash API key usage
+    const BACKEND_URL = 'http://localhost:3001'; // Change if deploying
+
+    const TrendingIcon = () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block align-middle mr-2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    );
+    const ClockIcon = () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block align-middle mr-2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    );
+    const HeartSidebarIcon = () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block align-middle mr-2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+    );
+
+    const Sidebar = ({ setSearchQuery, setView, view, isMobile, open, onClose }) => {
+      const handleSearch = (e) => {
+        if (e.key === 'Enter' && e.target.value.trim()) {
+          setView('search');
+          setSearchQuery(e.target.value.trim());
+          if (isMobile && onClose) onClose();
+        }
+      };
+      const sidebarContent = (
+        <div className="w-full flex flex-col items-center">
+          {/* Title */}
+          <span className="text-3xl font-bold text-pink-600 mb-6 tracking-tight text-center w-full block" style={{ fontFamily: 'Poppins, sans-serif' }}>View</span>
+          {/* Search bar */}
+          <input
+            type="text"
+            placeholder="Search..."
+            className="w-full mb-8 p-3 rounded-full bg-gray-100 text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-200"
+            onKeyDown={handleSearch}
+          />
+          {/* Pinterest-style nav */}
+          <nav className="flex flex-col gap-2 w-full mt-2">
+            <button
+              className={`w-full text-left px-5 py-3 rounded-full font-semibold transition-all shadow-sm mb-1 ${view === 'trending' ? 'bg-pink-100 text-pink-700' : 'bg-gray-50 hover:bg-gray-100 text-gray-700'}`}
+              onClick={() => { setView('trending'); if (isMobile && onClose) onClose(); }}
+            >
+              <TrendingIcon /> Trending
+            </button>
+            <button
+              className={`w-full text-left px-5 py-3 rounded-full font-semibold transition-all shadow-sm mb-1 ${view === 'newest' ? 'bg-pink-100 text-pink-700' : 'bg-gray-50 hover:bg-gray-100 text-gray-700'}`}
+              onClick={() => { setView('newest'); if (isMobile && onClose) onClose(); }}
+            >
+              <ClockIcon /> Newest
+            </button>
+            <button
+              className={`w-full text-left px-5 py-3 rounded-full font-semibold transition-all shadow-sm mb-1 ${view === 'favorites' ? 'bg-pink-100 text-pink-700' : 'bg-gray-50 hover:bg-gray-100 text-gray-700'}`}
+              onClick={() => { setView('favorites'); if (isMobile && onClose) onClose(); }}
+            >
+              <HeartSidebarIcon /> Favorites
+            </button>
+          </nav>
+        </div>
+      );
+      return isMobile ? (
+        <>
+          <div className={`sidebar-mobile${open ? ' open' : ''}`}>{sidebarContent}
+            {/* Footer */}
+            <div className="w-full mt-8 flex justify-center">
+              <a
+                href="https://itsharshitgoat.github.io/Website/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-pink-100 hover:bg-pink-200 text-pink-700 font-semibold text-base shadow transition-all border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300"
+                style={{ textDecoration: 'none' }}
+              >
+                <span>Made</span>
+                <span>by Harshit</span>
+              </a>
+            </div>
+          </div>
+          {open && <div className="sidebar-backdrop" onClick={onClose}></div>}
+        </>
+      ) : (
+        <div className="w-60 p-4 bg-white shadow-xl h-screen fixed flex flex-col items-start justify-between" style={{ borderTopRightRadius: '2rem', borderBottomRightRadius: '2rem' }}>
+          {sidebarContent}
+          {/* Footer */}
+          <div className="w-full mt-8 flex justify-center">
+            <a
+              href="https://itsharshitgoat.github.io/Website/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-pink-100 hover:bg-pink-200 text-pink-700 font-semibold text-base shadow transition-all border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300"
+              style={{ textDecoration: 'none' }}
+            >
+              <span>Made</span>
+              <span>by Harshit</span>
+            </a>
+          </div>
+        </div>
+      );
+    };
+
+    const HeartIcon = ({ filled }) => (
+      filled ? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+      )
+    );
+    const DownloadIcon = () => (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    );
+
+    const ImageCard = ({ image, favorites, toggleFavorite, handleDownload }) => {
+      const isFavorited = favorites.some(fav => fav.id === image.id);
+      // Only show first word of creator's name
+      const creatorName = image.user?.name ? image.user.name.split(' ')[0] : 'Unknown';
+      return (
+        <div className="masonry-item">
+          <div className="card">
+            <img
+              src={image.urls?.small || ''}
+              alt={image.alt_description || 'Wallpaper'}
+              className="w-full h-auto"
+            />
+            <div className="p-2 flex justify-between items-center">
+              <p className="text-sm text-gray-600">By {creatorName}</p>
+              <div className="flex items-center">
+                <div className="flex rounded-full bg-gray-100 hover:bg-gray-200 transition-all shadow-sm overflow-hidden border border-gray-200" style={{ minWidth: '0' }}>
+                  <button
+                    className="p-1 flex items-center justify-center focus:outline-none"
+                    onClick={() => toggleFavorite(image)}
+                    aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+                    style={{ background: 'none', border: 'none' }}
+                  >
+                    <HeartIcon filled={isFavorited} />
+                  </button>
+                  <div className="w-px h-5 bg-gray-300 mx-0.5" />
+                  <button
+                    className="p-1 flex items-center justify-center focus:outline-none"
+                    onClick={() => handleDownload(image)}
+                    aria-label="Download image"
+                    style={{ background: 'none', border: 'none' }}
+                  >
+                    <DownloadIcon />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const ImageGrid = ({ images, favorites, toggleFavorite, handleDownload, isLoading, hasMore, setPage, error }) => (
+      <div className="ml-64 p-4">
+        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        <div className="masonry-grid">
+          {images.map(image => (
+            <ImageCard
+              key={image.id}
+              image={image}
+              favorites={favorites}
+              toggleFavorite={toggleFavorite}
+              handleDownload={handleDownload}
+            />
+          ))}
+        </div>
+        {isLoading && <p className="text-gray-600 text-center mt-4">Loading...</p>}
+        {hasMore && !isLoading && (
+          <button
+            className="mt-4 w-full py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            onClick={() => setPage(prev => prev + 1)}
+          >
+            Load More
+          </button>
+        )}
+      </div>
+    );
+
+    const App = () => {
+      const [view, setView] = useState('trending');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [colorFilter, setColorFilter] = useState('');
+      const [categoryFilter, setCategoryFilter] = useState('');
+      const [images, setImages] = useState([]);
+      const [page, setPage] = useState(1);
+      const [favorites, setFavorites] = useState([]);
+      const [isLoading, setIsLoading] = useState(false);
+      const [hasMore, setHasMore] = useState(true);
+      const [error, setError] = useState('');
+      const [sidebarOpen, setSidebarOpen] = useState(false);
+      const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+      useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+      }, []);
+
+      useEffect(() => {
+        const storedFavorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        setFavorites(storedFavorites);
+      }, []);
+
+      useEffect(() => {
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+      }, [favorites]);
+
+      useEffect(() => {
+        setPage(1);
+      }, [view, searchQuery, colorFilter, categoryFilter]);
+
+      useEffect(() => {
+        const fetchImages = async () => {
+          setIsLoading(true);
+          setError('');
+          let url;
+          let finalQuery = searchQuery;
+          if (finalQuery && !finalQuery.toLowerCase().includes('4k hd wallpaper')) {
+            finalQuery = finalQuery + ' 4k hd wallpaper';
+          }
+          if (view === 'favorites') {
+            setImages(favorites);
+            setHasMore(false);
+            setIsLoading(false);
+            return;
+          } else if (view === 'search') {
+            if (!searchQuery) {
+              setImages([]);
+              setIsLoading(false);
+              return;
+            }
+            url = `${BACKEND_URL}/api/search?q=${encodeURIComponent(finalQuery)}`;
+          } else {
+            // For trending/newest, fallback to Unsplash public API (or extend backend for these)
+            const orderBy = view === 'trending' ? 'popular' : 'latest';
+            url = `${BACKEND_URL}/api/search?q=${orderBy} 4k hd wallpaper&page=${page}`;
+          }
+          // colorFilter and categoryFilter can be added to backend if needed
+          try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+            const data = await response.json();
+            const results = data.results || data;
+            setImages(prev => page === 1 ? results : [...prev, ...results]);
+            setHasMore(results.length === 20 || results.length === 30);
+          } catch (error) {
+            setError(`Failed to fetch images: ${error.message}. Please check your backend server or network connection.`);
+            console.error('Error fetching images:', error);
+          }
+          setIsLoading(false);
+        };
+        fetchImages();
+      }, [view, searchQuery, colorFilter, categoryFilter, page]);
+
+      const toggleFavorite = (image) => {
+        setFavorites(prev => {
+          const isFavorited = prev.some(fav => fav.id === image.id);
+          return isFavorited ? prev.filter(fav => fav.id !== image.id) : [...prev, image];
+        });
+      };
+
+      const handleDownload = async (image) => {
+        try {
+          await fetch(image.links.download_location);
+          const link = document.createElement('a');
+          link.href = image.urls.full;
+          link.download = `${image.id}.jpg`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } catch (error) {
+          setError(`Failed to download image: ${error.message}`);
+          console.error('Download error:', error);
+        }
+      };
+
+      useEffect(() => {
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      }, []);
+
+      return (
+        <div className="flex flex-col min-h-screen">
+          {isMobile && (
+            <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-[90vw] max-w-[400px] flex items-center justify-between bg-white rounded-full shadow-lg px-4 py-3 border-2 border-pink-200 hover:bg-pink-50 transition-all fade-in-out">
+              <span className="text-xl font-bold text-pink-600 pl-2" style={{ fontFamily: 'Poppins, sans-serif' }}>View</span>
+              <button
+                className="flex items-center justify-center focus:outline-none bg-transparent border-0 p-0 ml-2"
+                onClick={() => setSidebarOpen(true)}
+                aria-label="Open menu"
+                style={{ minWidth: '44px' }}
+              >
+                {/* Hamburger icon */}
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+              </button>
+            </div>
+          )}
+          <div className={isMobile ? 'w-full pt-[80px] fade-in-out' : ''}>
+            <Sidebar
+              setSearchQuery={setSearchQuery}
+              setView={setView}
+              view={view}
+              isMobile={isMobile}
+              open={isMobile ? sidebarOpen : undefined}
+              onClose={isMobile ? () => setSidebarOpen(false) : undefined}
+            />
+            <ImageGrid
+              images={images}
+              favorites={favorites}
+              toggleFavorite={toggleFavorite}
+              handleDownload={handleDownload}
+              isLoading={isLoading}
+              hasMore={hasMore}
+              setPage={setPage}
+              error={error}
+            />
+          </div>
+        </div>
+      );
+    };
+
+    try {
+      ReactDOM.render(<App />, document.getElementById('root'));
+    } catch (error) {
+      console.error('ReactDOM render error:', error);
+      document.getElementById('root').innerHTML = '<p class="text-red-500 text-center p-4">Error loading the application. Please check the console for details.</p>';
+    }
+  </script>
+</body>
+</html>
