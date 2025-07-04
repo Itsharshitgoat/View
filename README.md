@@ -1,4 +1,4 @@
-# View (Wallhub)
+# View
 
 A beautiful, responsive web app to discover, search, and download high-quality wallpapers from Unsplash, with favorites and trending features. Built with React, Tailwind CSS, and a secure Node.js backend proxy to keep your API key safe.
 
